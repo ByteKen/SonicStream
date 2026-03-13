@@ -35,6 +35,21 @@ async def health():
     return {"status": "ok"}
 
 
+# ── App version check (for auto-updater) ───────────────
+APP_VERSION = "1.0.0"
+APK_DOWNLOAD_URL = "https://github.com/ByteKen/SonicStream/releases/latest/download/SonicStream.apk"
+
+
+@app.get("/version", tags=["Meta"])
+async def version():
+    return {
+        "latest_version": APP_VERSION,
+        "download_url": APK_DOWNLOAD_URL,
+        "force_update": False,
+        "changelog": "Initial release",
+    }
+
+
 # ── Dev runner ──────────────────────────────────────────
 if __name__ == "__main__":
     import uvicorn

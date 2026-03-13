@@ -19,7 +19,7 @@ async function checkConnectivity(baseUrl: string): Promise<boolean> {
   }
 }
 
-export function useNetwork(baseUrl = 'http://10.0.2.2:8000') {
+export function useNetwork(baseUrl = 'https://sonicstream-kpji.onrender.com') {
   const [isOnline, setIsOnline] = useState(true);
 
   useEffect(() => {

@@ -10,12 +10,15 @@ import { AuthProvider } from './src/contexts/AuthContext';
 import AppNavigator from './src/navigation/AppNavigator';
 import ErrorBoundary from './src/components/ErrorBoundary';
 import { setupTrackPlayer } from './src/services/trackplayer';
+import { checkForUpdate } from './src/services/appUpdater';
 
 function App() {
   const [playerReady, setPlayerReady] = useState(false);
 
   useEffect(() => {
     setupTrackPlayer().then(() => setPlayerReady(true));
+    // Check for app updates on launch
+    checkForUpdate();
   }, []);
 
   if (!playerReady) return null;

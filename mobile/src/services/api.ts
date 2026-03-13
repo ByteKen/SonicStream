@@ -5,9 +5,8 @@
 import axios, { AxiosInstance } from 'axios';
 import { storage } from '../services/storage';
 
-// For Android emulator, 10.0.2.2 maps to host localhost.
-// Change this to your ngrok URL or machine IP for physical devices.
-const BASE_URL = 'http://10.0.2.2:8000';
+// Production backend on Render
+const BASE_URL = 'https://sonicstream-kpji.onrender.com';
 
 const api: AxiosInstance = axios.create({
   baseURL: BASE_URL,
