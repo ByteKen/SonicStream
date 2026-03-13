@@ -151,7 +151,7 @@ def _try_piped(video_id: str) -> StreamInfo | None:
 
 
 # ── yt-dlp extraction ──────────────────────────────────
-COOKIE_FILE = Path(__file__).resolve().parents[2] / "cookies.txt"
+COOKIE_FILE = Path("cookies.txt").resolve()
 _BROWSER = os.getenv("YT_COOKIE_BROWSER", "")
 
 _BASE_OPTS: dict = {
