@@ -51,7 +51,7 @@ async function ensureDir(): Promise<void> {
 }
 
 function filePath(videoId: string): string {
-  return `${DOWNLOADS_DIR}/${videoId}.webm`;
+  return `${DOWNLOADS_DIR}/${videoId}.m4a`;
 }
 
 // ── Public API ──────────────────────────────────────
@@ -117,7 +117,7 @@ export async function startDownload(track: {
   try {
     const result = await promise;
 
-    if (result.statusCode === 200) {
+    if (result.statusCode === 200 || result.statusCode === 206) {
       const stat = await RNFS.stat(dest);
       const dlTrack: DownloadedTrack = {
         videoId: track.videoId,

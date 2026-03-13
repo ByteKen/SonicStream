@@ -2,9 +2,10 @@
 /audio router — reverse-proxy that streams audio bytes to the client.
 
 Why proxy?
-  1. Hides raw YouTube URLs from the mobile app.
+  1. Hides raw stream URLs from the mobile app.
   2. Lets us inject Range-header support for seeking.
   3. Works around CORS / referrer issues on the client.
+  4. Handles both YouTube CDN and Piped proxy URLs transparently.
 """
 
 import httpx
@@ -15,9 +16,9 @@ from app.services.stream import extract_stream
 
 router = APIRouter(tags=["Audio"])
 
-# Reusable async HTTP client (connection-pooled)
+# Reusable async HTTP client (connection-pooled) with generous timeouts
 _http_client = httpx.AsyncClient(
-    timeout=httpx.Timeout(connect=10.0, read=30.0, write=10.0, pool=10.0),
+    timeout=httpx.Timeout(connect=15.0, read=60.0, write=10.0, pool=15.0),
     follow_redirects=True,
 )
 
@@ -31,7 +32,7 @@ async def audio_proxy(video_id: str, request: Request):
     The client hits this endpoint directly as the audio source URL
     in react-native-track-player.
     """
-    # 1. Resolve the direct audio URL (cached for ~5 hrs)
+    # 1. Resolve the direct audio URL (cached for ~4 hrs)
     try:
         stream_info = extract_stream(video_id)
     except RuntimeError as exc:
@@ -39,8 +40,11 @@ async def audio_proxy(video_id: str, request: Request):
 
     upstream_url = stream_info.url
 
-    # 2. Forward the client's Range header (if any) to YouTube
-    upstream_headers: dict[str, str] = {}
+    # 2. Forward the client's Range header (if any) to upstream
+    upstream_headers: dict[str, str] = {
+        # Some CDNs need a user-agent
+        "User-Agent": "Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 Chrome/131.0.0.0 Mobile Safari/537.36",
+    }
     range_header = request.headers.get("range")
     if range_header:
         upstream_headers["Range"] = range_header
@@ -71,7 +75,7 @@ async def audio_proxy(video_id: str, request: Request):
     # 5. Build response headers for the client
     response_headers: dict[str, str] = {}
 
-    content_type = upstream_resp.headers.get("content-type", "audio/webm")
+    content_type = upstream_resp.headers.get("content-type", "audio/mp4")
     content_length = upstream_resp.headers.get("content-length")
     content_range = upstream_resp.headers.get("content-range")
     accept_ranges = upstream_resp.headers.get("accept-ranges")

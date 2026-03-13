@@ -1,11 +1,10 @@
 """
-Service layer for yt-dlp audio stream extraction.
-Uses yt-dlp's Python API directly (no subprocess).
+Service layer for audio stream extraction.
 
-Extraction strategy:
-  1. Try music.youtube.com URL with best anti-bot options.
-  2. If that fails, try youtube.com.
-  3. If cookies are configured, retry both with cookies.
+Extraction strategy (designed for cloud servers where YouTube blocks yt-dlp):
+  1. Piped API — public YouTube-frontend instances that extract streams
+     server-side. Works reliably from cloud/datacenter IPs.
+  2. yt-dlp fallback — tried if all Piped instances fail.
 """
 
 import os
@@ -15,6 +14,7 @@ import threading
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
 
+import httpx
 import yt_dlp
 
 from app.schemas.stream import StreamInfo
@@ -22,7 +22,7 @@ from app.schemas.stream import StreamInfo
 logger = logging.getLogger(__name__)
 
 # ── URL cache ──────────────────────────────────────────
-_CACHE_TTL = 5 * 3600  # 5 hours (YT URLs expire after ~6 hrs)
+_CACHE_TTL = 4 * 3600  # 4 hours (conservative; URLs expire ~6 hrs)
 _cache: dict[str, tuple[StreamInfo, float]] = {}
 _cache_lock = threading.Lock()
 
@@ -41,7 +41,91 @@ def _set_cached(video_id: str, info: StreamInfo) -> None:
         _cache[video_id] = (info, time.time())
 
 
-# ── yt-dlp option builders ─────────────────────────────
+# ── Piped API instances (tried in order) ───────────────
+# These are public Piped API servers. If one goes down, we try the next.
+PIPED_INSTANCES = [
+    "https://pipedapi.kavin.rocks",
+    "https://api.piped.yt",
+    "https://pipedapi.adminforge.de",
+    "https://pipedapi.in.projectsegfau.lt",
+    "https://api.piped.privacydev.net",
+    "https://pipedapi.darkness.services",
+]
+
+_piped_http = httpx.Client(timeout=15.0, follow_redirects=True)
+
+
+def _try_piped(video_id: str) -> StreamInfo | None:
+    """
+    Try extracting an audio stream URL from Piped API instances.
+    Piped is a privacy-friendly YouTube frontend that handles extraction
+    server-side, so it bypasses YouTube's bot detection on our cloud IP.
+    """
+    for instance in PIPED_INSTANCES:
+        try:
+            resp = _piped_http.get(f"{instance}/streams/{video_id}")
+            if resp.status_code != 200:
+                logger.warning("Piped %s returned %d for %s", instance, resp.status_code, video_id)
+                continue
+
+            data = resp.json()
+
+            # Find best audio stream
+            audio_streams = data.get("audioStreams") or []
+            if not audio_streams:
+                logger.warning("Piped %s: no audioStreams for %s", instance, video_id)
+                continue
+
+            # Sort by bitrate (highest first), prefer m4a/mp4
+            def _sort_key(s):
+                bitrate = s.get("bitrate", 0)
+                # Prefer m4a/mp4 for mobile compatibility
+                is_m4a = 1 if "m4a" in s.get("mimeType", "") or "mp4" in s.get("mimeType", "") else 0
+                return (is_m4a, bitrate)
+
+            audio_streams.sort(key=_sort_key, reverse=True)
+            best = audio_streams[0]
+            stream_url = best.get("url")
+
+            if not stream_url:
+                logger.warning("Piped %s: no URL in best stream for %s", instance, video_id)
+                continue
+
+            # Extract codec from mimeType like "audio/mp4; codecs=\"mp4a.40.2\""
+            mime = best.get("mimeType", "")
+            codec = None
+            if "codecs=" in mime:
+                codec = mime.split('codecs="')[1].rstrip('"') if 'codecs="' in mime else None
+
+            duration = data.get("duration")
+
+            expires_at = (
+                datetime.now(timezone.utc) + timedelta(hours=6)
+            ).isoformat()
+
+            result = StreamInfo(
+                video_id=video_id,
+                title=data.get("title", "Unknown"),
+                url=stream_url,
+                codec=codec or best.get("codec"),
+                quality=f"{best.get('bitrate', 0) // 1000}kbps" if best.get("bitrate") else None,
+                filesize=best.get("contentLength"),
+                duration_seconds=int(duration) if duration else None,
+                thumbnail=data.get("thumbnailUrl"),
+                expires_at=expires_at,
+            )
+
+            logger.info("Piped: extracted %s via %s", video_id, instance)
+            return result
+
+        except Exception as exc:
+            logger.warning("Piped %s failed for %s: %s", instance, video_id, exc)
+            continue
+
+    return None
+
+
+# ── yt-dlp fallback ────────────────────────────────────
 _COOKIE_FILE = Path(__file__).resolve().parents[2] / "cookies.txt"
 _BROWSER = os.getenv("YT_COOKIE_BROWSER", "")
 
@@ -52,7 +136,6 @@ _BASE_OPTS: dict = {
     "skip_download": True,
     "extract_flat": False,
     "noplaylist": True,
-    # Anti-bot / fingerprinting options
     "extractor_args": {
         "youtube": {
             "player_client": ["ios", "web"],
@@ -70,12 +153,10 @@ _BASE_OPTS: dict = {
 
 
 def _opts_no_cookies() -> dict:
-    """Plain options — no authentication."""
     return {**_BASE_OPTS}
 
 
 def _opts_with_cookies() -> dict | None:
-    """Options with cookies, or None if no cookie source is available."""
     if _BROWSER:
         return {**_BASE_OPTS, "cookiesfrombrowser": (_BROWSER,)}
     if _COOKIE_FILE.is_file():
@@ -83,38 +164,11 @@ def _opts_with_cookies() -> dict | None:
     return None
 
 
-# ── Core extraction ────────────────────────────────────
-def _try_extract(video_id: str, url: str, opts: dict) -> dict | None:
-    """Attempt extraction; return info dict or None on failure."""
-    try:
-        with yt_dlp.YoutubeDL(opts) as ydl:
-            info = ydl.extract_info(url, download=False)
-            return info if info else None
-    except Exception as exc:
-        logger.warning("yt-dlp attempt failed (%s): %s", url, exc)
-        return None
-
-
-def extract_stream(video_id: str) -> StreamInfo:
-    """
-    Extract the best audio-only stream URL for *video_id*.
-
-    Strategy (first success wins):
-      1. music.youtube.com — no cookies (works for most content).
-      2. youtube.com — no cookies.
-      3. music.youtube.com — with cookies (if configured).
-      4. youtube.com — with cookies (if configured).
-
-    Returns StreamInfo.  Raises RuntimeError on total failure.
-    """
-    cached = _get_cached(video_id)
-    if cached:
-        return cached
-
+def _try_ytdlp(video_id: str) -> StreamInfo | None:
+    """Fallback: use yt-dlp directly (may be blocked on cloud IPs)."""
     music_url = f"https://music.youtube.com/watch?v={video_id}"
     yt_url = f"https://www.youtube.com/watch?v={video_id}"
 
-    # Build the list of (url, opts) attempts
     attempts: list[tuple[str, dict]] = [
         (music_url, _opts_no_cookies()),
         (yt_url, _opts_no_cookies()),
@@ -124,46 +178,77 @@ def extract_stream(video_id: str) -> StreamInfo:
         attempts.append((music_url, cookie_opts))
         attempts.append((yt_url, cookie_opts))
 
-    info = None
     for url, opts in attempts:
-        info = _try_extract(video_id, url, opts)
-        if info:
-            logger.info("yt-dlp: extracted %s via %s", video_id, url)
-            break
+        try:
+            with yt_dlp.YoutubeDL(opts) as ydl:
+                info = ydl.extract_info(url, download=False)
+                if not info:
+                    continue
+        except Exception as exc:
+            logger.warning("yt-dlp attempt failed (%s): %s", url, exc)
+            continue
 
-    if not info:
-        raise RuntimeError(
-            f"All extraction attempts failed for {video_id}. "
-            "Ensure the videoId is valid and, if needed, configure "
-            "YT_COOKIE_BROWSER or place a cookies.txt in backend/."
+        stream_url: str | None = info.get("url")
+        if not stream_url:
+            for fmt in info.get("requested_formats") or []:
+                if fmt.get("vcodec") == "none" or fmt.get("acodec") != "none":
+                    stream_url = fmt.get("url")
+                    break
+
+        if not stream_url:
+            continue
+
+        expires_at = (
+            datetime.now(timezone.utc) + timedelta(hours=6)
+        ).isoformat()
+
+        result = StreamInfo(
+            video_id=video_id,
+            title=info.get("title", "Unknown"),
+            url=stream_url,
+            codec=info.get("acodec"),
+            quality=info.get("format_note"),
+            filesize=info.get("filesize") or info.get("filesize_approx"),
+            duration_seconds=int(info["duration"]) if info.get("duration") else None,
+            thumbnail=info.get("thumbnail"),
+            expires_at=expires_at,
         )
 
-    # ── Resolve the audio stream URL ────────────────────
-    stream_url: str | None = info.get("url")
-    if not stream_url:
-        for fmt in info.get("requested_formats") or []:
-            if fmt.get("vcodec") == "none" or fmt.get("acodec") != "none":
-                stream_url = fmt.get("url")
-                break
+        logger.info("yt-dlp: extracted %s via %s", video_id, url)
+        return result
 
-    if not stream_url:
-        raise RuntimeError(f"No audio URL found in extraction result for {video_id}")
+    return None
 
-    expires_at = (
-        datetime.now(timezone.utc) + timedelta(hours=6)
-    ).isoformat()
 
-    result = StreamInfo(
-        video_id=video_id,
-        title=info.get("title", "Unknown"),
-        url=stream_url,
-        codec=info.get("acodec"),
-        quality=info.get("format_note"),
-        filesize=info.get("filesize") or info.get("filesize_approx"),
-        duration_seconds=int(info["duration"]) if info.get("duration") else None,
-        thumbnail=info.get("thumbnail"),
-        expires_at=expires_at,
-    )
+# ── Public API ─────────────────────────────────────────
+def extract_stream(video_id: str) -> StreamInfo:
+    """
+    Extract the best audio stream URL for *video_id*.
+
+    Strategy:
+      1. Check cache.
+      2. Try Piped API instances (works from cloud servers).
+      3. Fallback to yt-dlp (may fail on datacenter IPs).
+
+    Returns StreamInfo. Raises RuntimeError on total failure.
+    """
+    cached = _get_cached(video_id)
+    if cached:
+        return cached
+
+    # Primary: Piped API (reliable on cloud servers)
+    result = _try_piped(video_id)
+
+    # Fallback: yt-dlp
+    if not result:
+        logger.info("Piped failed for %s, falling back to yt-dlp", video_id)
+        result = _try_ytdlp(video_id)
+
+    if not result:
+        raise RuntimeError(
+            f"All extraction attempts failed for {video_id}. "
+            "Neither Piped API nor yt-dlp could resolve an audio stream."
+        )
 
     _set_cached(video_id, result)
     return result
