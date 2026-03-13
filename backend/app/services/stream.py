@@ -20,6 +20,7 @@ import os
 import time
 import logging
 import threading
+import tempfile
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
 
@@ -151,7 +152,7 @@ def _try_piped(video_id: str) -> StreamInfo | None:
 
 
 # ── yt-dlp extraction ──────────────────────────────────
-COOKIE_FILE = Path("cookies.txt").resolve()
+COOKIE_FILE = Path(tempfile.gettempdir()) / "youtube_cookies.txt"
 _BROWSER = os.getenv("YT_COOKIE_BROWSER", "")
 
 _BASE_OPTS: dict = {
