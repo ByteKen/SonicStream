@@ -1,0 +1,26 @@
+# Dependencies
+venv/
+node_modules/
+__pycache__/
+*.pyc
+
+# Environment
+.env
+.env.local
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Build artifacts
+*.egg-info/
+dist/
+build/
+
+# Mobile
+mobile/android/app/build/
+mobile/ios/build/
