@@ -39,7 +39,13 @@ async def upload_cookies(file: UploadFile = File(...)):
         )
 
     # Write to the cookie file location
-    COOKIE_FILE.write_bytes(content)
+    try:
+        COOKIE_FILE.write_bytes(content)
+    except Exception as exc:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to write cookies.txt: {exc} (Path: {COOKIE_FILE})"
+        )
 
     line_count = len(text.strip().split("\n"))
     return {
