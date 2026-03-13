@@ -1,8 +1,8 @@
 /**
- * SearchScreen — search, play, and download tracks.
+ * SearchScreen — Spotify-style search with animated results and press feedback.
  */
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import {
   View,
   TextInput,
@@ -13,11 +13,10 @@ import {
   StatusBar,
   ActivityIndicator,
   Alert,
+  Animated,
 } from 'react-native';
-import LinearGradient from 'react-native-linear-gradient';
 import Icon from 'react-native-vector-icons/Ionicons';
 import AppText from '../../components/AppText';
-import GlassCard from '../../components/GlassCard';
 import { colors, spacing, borderRadius, typography } from '../../theme';
 import { searchTracks, Track } from '../../services/api';
 import { usePlayer } from '../../hooks/usePlayer';
@@ -65,7 +64,7 @@ const SearchScreen = () => {
     [download, checkDownloaded],
   );
 
-  const renderTrack = ({ item }: { item: Track }) => {
+  const renderTrack = ({ item, index }: { item: Track; index: number }) => {
     const isActive = activeTrack?.id === item.video_id;
     const downloaded = checkDownloaded(item.video_id);
     const dlProgress = getProgress(item.video_id);
@@ -73,7 +72,7 @@ const SearchScreen = () => {
 
     return (
       <TouchableOpacity
-        activeOpacity={0.7}
+        activeOpacity={0.6}
         style={styles.trackRow}
         onPress={() => handlePlayTrack(item)}
       >
@@ -97,7 +96,7 @@ const SearchScreen = () => {
               <Icon
                 name="arrow-down-circle"
                 size={14}
-                color={colors.success}
+                color={colors.primary}
                 style={styles.downloadedIcon}
               />
             )}
@@ -115,9 +114,9 @@ const SearchScreen = () => {
           style={styles.downloadBtn}
         >
           {isDownloading ? (
-            <ActivityIndicator size="small" color={colors.secondary} />
+            <ActivityIndicator size="small" color={colors.primary} />
           ) : downloaded ? (
-            <Icon name="checkmark-circle" size={22} color={colors.success} />
+            <Icon name="checkmark-circle" size={22} color={colors.primary} />
           ) : (
             <Icon name="download-outline" size={22} color={colors.textMuted} />
           )}
@@ -127,50 +126,56 @@ const SearchScreen = () => {
         {isActive && isPlaying ? (
           <Icon name="volume-high" size={20} color={colors.primary} />
         ) : (
-          <Icon name="play-circle-outline" size={26} color={colors.primary} />
+          <Icon name="play" size={20} color={colors.textSecondary} />
         )}
       </TouchableOpacity>
     );
   };
 
   return (
-    <LinearGradient colors={['#0A0A0F', '#14141F']} style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
+    <View style={styles.container}>
+      <StatusBar barStyle="light-content" backgroundColor={colors.background} translucent />
       <View style={styles.content}>
+        {/* Header */}
+        <View style={styles.headerSection}>
+          <AppText variant="title">Search</AppText>
+        </View>
+
         {/* Search Bar */}
         <View style={styles.searchBarWrapper}>
-          <GlassCard style={styles.searchBar} padding={0}>
-            <View style={styles.searchBarInner}>
-              <Icon name="search" size={20} color={colors.textMuted} />
-              <TextInput
-                style={styles.searchInput}
-                placeholder="Search songs, artists..."
-                placeholderTextColor={colors.textMuted}
-                value={query}
-                onChangeText={setQuery}
-                onSubmitEditing={handleSearch}
-                returnKeyType="search"
-                autoCorrect={false}
-              />
-              {query.length > 0 && (
-                <TouchableOpacity
-                  onPress={() => {
-                    setQuery('');
-                    setResults([]);
-                    setSearched(false);
-                  }}
-                >
-                  <Icon name="close-circle" size={20} color={colors.textMuted} />
-                </TouchableOpacity>
-              )}
-            </View>
-          </GlassCard>
+          <View style={styles.searchBar}>
+            <Icon name="search" size={20} color={colors.textInverse} />
+            <TextInput
+              style={styles.searchInput}
+              placeholder="What do you want to listen to?"
+              placeholderTextColor={colors.textMuted}
+              value={query}
+              onChangeText={setQuery}
+              onSubmitEditing={handleSearch}
+              returnKeyType="search"
+              autoCorrect={false}
+            />
+            {query.length > 0 && (
+              <TouchableOpacity
+                onPress={() => {
+                  setQuery('');
+                  setResults([]);
+                  setSearched(false);
+                }}
+              >
+                <Icon name="close-circle" size={20} color={colors.textMuted} />
+              </TouchableOpacity>
+            )}
+          </View>
         </View>
 
         {/* Results */}
         {loading ? (
           <View style={styles.centered}>
             <ActivityIndicator size="large" color={colors.primary} />
+            <AppText variant="body" style={styles.loadingText}>
+              Searching...
+            </AppText>
           </View>
         ) : results.length > 0 ? (
           <FlatList
@@ -186,47 +191,66 @@ const SearchScreen = () => {
             <AppText variant="body" style={styles.emptyText}>
               No results found
             </AppText>
+            <AppText variant="caption" style={styles.emptySubtext}>
+              Try different keywords
+            </AppText>
           </View>
         ) : (
           <View style={styles.centered}>
-            <Icon name="musical-notes-outline" size={48} color={colors.textMuted} />
-            <AppText variant="body" style={styles.emptyText}>
-              Search for your favorite music
+            <Icon name="musical-notes-outline" size={56} color={colors.textMuted} />
+            <AppText variant="subtitle" style={styles.emptyText}>
+              Search for music
+            </AppText>
+            <AppText variant="body" style={styles.emptySubtext}>
+              Find songs, artists, and more
             </AppText>
           </View>
         )}
       </View>
-    </LinearGradient>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
-  content: { flex: 1, paddingTop: 60 },
-  searchBarWrapper: { paddingHorizontal: spacing.lg, marginBottom: spacing.md },
-  searchBar: { borderRadius: borderRadius.xl },
-  searchBarInner: {
+  container: {
+    flex: 1,
+    backgroundColor: colors.background,
+  },
+  content: { flex: 1, paddingTop: 56 },
+  headerSection: {
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.sm,
+    paddingBottom: spacing.sm,
+  },
+  searchBarWrapper: {
+    paddingHorizontal: spacing.lg,
+    marginBottom: spacing.md,
+  },
+  searchBar: {
     flexDirection: 'row',
     alignItems: 'center',
+    backgroundColor: colors.text,  // White search bar like Spotify
+    borderRadius: borderRadius.sm,
     paddingHorizontal: spacing.md,
     height: 48,
   },
   searchInput: {
     flex: 1,
-    color: colors.text,
+    color: colors.textInverse,
     fontSize: typography.sizes.body,
     marginLeft: spacing.sm,
+    fontWeight: '500',
   },
   listContent: { paddingBottom: 140 },
   trackRow: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.sm,
+    paddingVertical: spacing.sm + 2,
   },
   thumbnail: {
-    width: 52,
-    height: 52,
+    width: 50,
+    height: 50,
     borderRadius: borderRadius.sm,
     marginRight: spacing.md,
   },
@@ -236,7 +260,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   trackInfo: { flex: 1, marginRight: spacing.sm },
-  trackMeta: { flexDirection: 'row', alignItems: 'center' },
+  trackMeta: { flexDirection: 'row', alignItems: 'center', marginTop: 2 },
   downloadedIcon: { marginRight: 4 },
   downloadBtn: {
     width: 36,
@@ -250,7 +274,20 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  emptyText: { marginTop: spacing.md, textAlign: 'center' },
+  loadingText: {
+    marginTop: spacing.md,
+    color: colors.textMuted,
+  },
+  emptyText: {
+    marginTop: spacing.md,
+    textAlign: 'center',
+    color: colors.text,
+  },
+  emptySubtext: {
+    marginTop: spacing.xs,
+    textAlign: 'center',
+    color: colors.textMuted,
+  },
 });
 
 export default SearchScreen;

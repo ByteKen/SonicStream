@@ -1,39 +1,41 @@
 /**
- * Global design tokens — dark palette with iOS-aesthetic glassmorphism.
+ * Global design tokens — Spotify-inspired dark palette with premium feel.
  */
 
 export const colors = {
-  // ── Core palette ─────────────────────────────
-  background: '#0A0A0F',
-  surface: '#14141F',
-  surfaceLight: '#1E1E2E',
-  card: 'rgba(255, 255, 255, 0.05)',
-  glass: 'rgba(255, 255, 255, 0.08)',
+  // ── Core palette (Spotify-style true blacks) ──
+  background: '#121212',
+  surface: '#181818',
+  surfaceLight: '#282828',
+  surfaceElevated: '#333333',
+  card: 'rgba(255, 255, 255, 0.07)',
+  glass: 'rgba(255, 255, 255, 0.10)',
   glassBorder: 'rgba(255, 255, 255, 0.12)',
 
-  // ── Accent ───────────────────────────────────
-  primary: '#6366F1',       // Indigo
-  primaryLight: '#818CF8',
-  primaryDark: '#4F46E5',
-  secondary: '#22D3EE',     // Cyan accent
-  accent: '#F472B6',        // Pink accent
+  // ── Accent (Spotify Brand Green) ──────────────
+  primary: '#1DB954',         // Spotify Green
+  primaryLight: '#1ED760',
+  primaryDark: '#1AA34A',
+  secondary: '#B3B3B3',       // Soft grey for secondary elements
+  accent: '#E91E63',          // Pink for explicit/special tags
 
   // ── Text ─────────────────────────────────────
-  text: '#F8FAFC',
-  textSecondary: '#94A3B8',
-  textMuted: '#64748B',
-  textInverse: '#0F172A',
+  text: '#FFFFFF',
+  textSecondary: '#B3B3B3',
+  textMuted: '#727272',
+  textInverse: '#121212',
 
   // ── Semantic ─────────────────────────────────
-  success: '#34D399',
-  error: '#F87171',
-  warning: '#FBBF24',
+  success: '#1DB954',
+  error: '#F15E6C',
+  warning: '#F59B42',
 
   // ── Gradients ────────────────────────────────
-  gradientPrimary: ['#6366F1', '#8B5CF6'],
-  gradientDark: ['#0A0A0F', '#14141F'],
-  gradientCard: ['rgba(255,255,255,0.08)', 'rgba(255,255,255,0.02)'],
-  gradientPlayer: ['#1a1a2e', '#16213e', '#0f3460'],
+  gradientPrimary: ['#1DB954', '#1ED760'],
+  gradientDark: ['#121212', '#181818'],
+  gradientCard: ['rgba(255,255,255,0.10)', 'rgba(255,255,255,0.03)'],
+  gradientPlayer: ['#121212', '#1A1A1A', '#0D0D0D'],
+  gradientSurface: ['#282828', '#181818'],
 };
 
 export const spacing = {
@@ -46,7 +48,7 @@ export const spacing = {
 };
 
 export const borderRadius = {
-  sm: 8,
+  sm: 6,
   md: 12,
   lg: 16,
   xl: 24,
@@ -54,7 +56,7 @@ export const borderRadius = {
 };
 
 export const typography = {
-  // Using system font stack that mimics SF Pro on Android
+  // System font — looks native on both platforms
   fontFamily: 'System',
 
   sizes: {

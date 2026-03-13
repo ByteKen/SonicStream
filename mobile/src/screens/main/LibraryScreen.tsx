@@ -1,5 +1,5 @@
 /**
- * LibraryScreen — shows downloaded tracks for offline playback.
+ * LibraryScreen — Spotify-style library with downloaded tracks.
  */
 
 import React, { useCallback } from 'react';
@@ -12,11 +12,8 @@ import {
   StatusBar,
   Alert,
 } from 'react-native';
-import LinearGradient from 'react-native-linear-gradient';
 import Icon from 'react-native-vector-icons/Ionicons';
 import AppText from '../../components/AppText';
-import GlassCard from '../../components/GlassCard';
-import IconButton from '../../components/IconButton';
 import { colors, spacing, borderRadius } from '../../theme';
 import { useDownloads } from '../../hooks/useDownloads';
 import { usePlayer } from '../../hooks/usePlayer';
@@ -94,7 +91,7 @@ const LibraryScreen = () => {
 
     return (
       <TouchableOpacity
-        activeOpacity={0.7}
+        activeOpacity={0.6}
         style={styles.trackRow}
         onPress={() => handlePlay(item)}
       >
@@ -121,32 +118,33 @@ const LibraryScreen = () => {
         </View>
 
         {/* Delete button */}
-        <IconButton
-          name="trash-outline"
-          size={20}
-          color={colors.error}
+        <TouchableOpacity
           onPress={() => handleDelete(item)}
-        />
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          style={styles.actionBtn}
+        >
+          <Icon name="trash-outline" size={20} color={colors.error} />
+        </TouchableOpacity>
 
         {/* Play indicator */}
         {isActive && isPlaying ? (
           <Icon name="volume-high" size={20} color={colors.primary} />
         ) : (
-          <Icon name="play-circle-outline" size={26} color={colors.primary} />
+          <Icon name="play" size={20} color={colors.textSecondary} />
         )}
       </TouchableOpacity>
     );
   };
 
   return (
-    <LinearGradient colors={['#0A0A0F', '#14141F']} style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
+    <View style={styles.container}>
+      <StatusBar barStyle="light-content" backgroundColor={colors.background} translucent />
       <View style={styles.content}>
         {/* Header */}
         <View style={styles.header}>
           <AppText variant="title">Your Library</AppText>
           {downloads.length > 0 && (
-            <AppText variant="caption">
+            <AppText variant="caption" style={styles.trackCount}>
               {downloads.length} {downloads.length === 1 ? 'track' : 'tracks'} downloaded
             </AppText>
           )}
@@ -155,27 +153,24 @@ const LibraryScreen = () => {
         {downloads.length > 0 ? (
           <>
             {/* Play All button */}
-            <TouchableOpacity onPress={handlePlayAll} activeOpacity={0.8}>
-              <GlassCard style={styles.playAllCard}>
-                <View style={styles.playAllContent}>
-                  <View style={styles.playAllIcon}>
-                    <LinearGradient
-                      colors={colors.gradientPrimary as [string, string]}
-                      style={styles.playAllGradient}
-                    >
-                      <Icon name="play" size={20} color="#FFF" />
-                    </LinearGradient>
-                  </View>
-                  <View>
-                    <AppText variant="subtitle" color={colors.text}>
-                      Play All
-                    </AppText>
-                    <AppText variant="caption">
-                      Shuffle your downloaded tracks
-                    </AppText>
-                  </View>
+            <TouchableOpacity
+              onPress={handlePlayAll}
+              activeOpacity={0.8}
+              style={styles.playAllBtn}
+            >
+              <View style={styles.playAllInner}>
+                <View style={styles.playAllIcon}>
+                  <Icon name="play" size={18} color={colors.textInverse} />
                 </View>
-              </GlassCard>
+                <View>
+                  <AppText variant="subtitle" color={colors.text}>
+                    Play All
+                  </AppText>
+                  <AppText variant="caption">
+                    Shuffle your downloads
+                  </AppText>
+                </View>
+              </View>
             </TouchableOpacity>
 
             <FlatList
@@ -200,22 +195,31 @@ const LibraryScreen = () => {
           </View>
         )}
       </View>
-    </LinearGradient>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
+  container: {
+    flex: 1,
+    backgroundColor: colors.background,
+  },
   content: { flex: 1, paddingTop: 60 },
   header: {
     paddingHorizontal: spacing.lg,
     marginBottom: spacing.lg,
   },
-  playAllCard: {
+  trackCount: {
+    marginTop: spacing.xs,
+  },
+  playAllBtn: {
     marginHorizontal: spacing.lg,
     marginBottom: spacing.lg,
+    backgroundColor: colors.surfaceLight,
+    borderRadius: borderRadius.md,
+    padding: spacing.md,
   },
-  playAllContent: {
+  playAllInner: {
     flexDirection: 'row',
     alignItems: 'center',
   },
@@ -223,24 +227,21 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    overflow: 'hidden',
-    marginRight: spacing.md,
-  },
-  playAllGradient: {
-    flex: 1,
+    backgroundColor: colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
+    marginRight: spacing.md,
   },
   listContent: { paddingBottom: 140 },
   trackRow: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.sm,
+    paddingVertical: spacing.sm + 2,
   },
   thumbnail: {
-    width: 52,
-    height: 52,
+    width: 50,
+    height: 50,
     borderRadius: borderRadius.sm,
     marginRight: spacing.md,
   },
@@ -250,6 +251,13 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   trackInfo: { flex: 1, marginRight: spacing.sm },
+  actionBtn: {
+    width: 36,
+    height: 36,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: spacing.xs,
+  },
   emptyState: {
     flex: 1,
     alignItems: 'center',
@@ -260,13 +268,13 @@ const styles = StyleSheet.create({
     width: 96,
     height: 96,
     borderRadius: 48,
-    backgroundColor: colors.glass,
+    backgroundColor: colors.surfaceLight,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: spacing.lg,
   },
   emptyTitle: { marginBottom: spacing.sm, textAlign: 'center' },
-  emptyBody: { textAlign: 'center' },
+  emptyBody: { textAlign: 'center', color: colors.textMuted },
 });
 
 export default LibraryScreen;

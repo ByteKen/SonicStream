@@ -1,5 +1,6 @@
 /**
  * Root navigation — AuthGate + MiniPlayer overlay.
+ * Spotify-style bottom tabs with proper icon sets.
  */
 
 import React, { useRef } from 'react';
@@ -13,7 +14,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import Icon from 'react-native-vector-icons/Ionicons';
 
 import { useAuth } from '../contexts/AuthContext';
-import { colors } from '../theme';
+import { colors, spacing } from '../theme';
 import MiniPlayer from '../components/MiniPlayer';
 
 // Auth screens
@@ -38,26 +39,31 @@ const AuthNavigator = () => (
   </AuthStack.Navigator>
 );
 
-// ── Bottom tabs ─────────────────────────────────────
+// ── Bottom tabs — Spotify-style ─────────────────────
 const TabNavigator = () => (
   <Tab.Navigator
     screenOptions={({ route }) => ({
       headerShown: false,
       tabBarStyle: {
-        backgroundColor: 'rgba(10, 10, 15, 0.95)',
+        backgroundColor: colors.background,
         borderTopColor: 'rgba(255, 255, 255, 0.05)',
         borderTopWidth: 1,
         height: 60,
         paddingBottom: 8,
         paddingTop: 8,
+        elevation: 0,
       },
-      tabBarActiveTintColor: colors.primary,
+      tabBarActiveTintColor: colors.text,  // Active = white (like Spotify)
       tabBarInactiveTintColor: colors.textMuted,
-      tabBarIcon: ({ color, size }: { color: string; size: number }) => {
+      tabBarLabelStyle: {
+        fontSize: 11,
+        fontWeight: '600',
+      },
+      tabBarIcon: ({ focused, color, size }: { focused: boolean; color: string; size: number }) => {
         let iconName = 'home';
-        if (route.name === 'Home') iconName = 'home';
-        else if (route.name === 'Search') iconName = 'search';
-        else if (route.name === 'Library') iconName = 'library';
+        if (route.name === 'Home') iconName = focused ? 'home' : 'home-outline';
+        else if (route.name === 'Search') iconName = focused ? 'search' : 'search-outline';
+        else if (route.name === 'Library') iconName = focused ? 'library' : 'library-outline';
         return <Icon name={iconName} size={size} color={color} />;
       },
     })}

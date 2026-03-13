@@ -1,8 +1,8 @@
 /**
- * LoginScreen — glassmorphism card with email/password form.
+ * LoginScreen — Spotify-style dark login with green accents and animations.
  */
 
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   View,
   TextInput,
@@ -13,8 +13,8 @@ import {
   Platform,
   ActivityIndicator,
   Alert,
+  Animated,
 } from 'react-native';
-import LinearGradient from 'react-native-linear-gradient';
 import Icon from 'react-native-vector-icons/Ionicons';
 import AppText from '../../components/AppText';
 import GlassCard from '../../components/GlassCard';
@@ -27,6 +27,41 @@ const LoginScreen = ({ navigation }: any) => {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+
+  // Entrance animations
+  const logoScale = useRef(new Animated.Value(0.5)).current;
+  const logoOpacity = useRef(new Animated.Value(0)).current;
+  const formSlide = useRef(new Animated.Value(40)).current;
+  const formOpacity = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.parallel([
+      Animated.spring(logoScale, {
+        toValue: 1,
+        tension: 60,
+        friction: 8,
+        useNativeDriver: true,
+      }),
+      Animated.timing(logoOpacity, {
+        toValue: 1,
+        duration: 500,
+        useNativeDriver: true,
+      }),
+      Animated.timing(formSlide, {
+        toValue: 0,
+        duration: 600,
+        delay: 200,
+        useNativeDriver: true,
+      }),
+      Animated.timing(formOpacity, {
+        toValue: 1,
+        duration: 600,
+        delay: 200,
+        useNativeDriver: true,
+      }),
+    ]).start();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleLogin = async () => {
     if (!email || !password) {
@@ -44,106 +79,116 @@ const LoginScreen = ({ navigation }: any) => {
   };
 
   return (
-    <LinearGradient colors={['#0A0A0F', '#1a1a2e', '#0A0A0F']} style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
+    <View style={styles.container}>
+      <StatusBar barStyle="light-content" backgroundColor={colors.background} translucent />
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.content}
       >
         {/* Logo / Branding */}
-        <View style={styles.header}>
+        <Animated.View
+          style={[
+            styles.header,
+            {
+              opacity: logoOpacity,
+              transform: [{ scale: logoScale }],
+            },
+          ]}
+        >
           <View style={styles.logoContainer}>
-            <LinearGradient
-              colors={colors.gradientPrimary as [string, string]}
-              style={styles.logoGradient}
-            >
-              <Icon name="musical-notes" size={32} color="#FFF" />
-            </LinearGradient>
+            <View style={styles.logoCircle}>
+              <Icon name="musical-notes" size={36} color={colors.primary} />
+            </View>
           </View>
-          <AppText variant="title" style={styles.brandText}>
+          <AppText variant="hero" style={styles.brandText}>
             SonicStream
           </AppText>
           <AppText variant="body" style={styles.tagline}>
             Your music, everywhere.
           </AppText>
-        </View>
+        </Animated.View>
 
         {/* Login Card */}
-        <GlassCard style={styles.card}>
-          <AppText variant="subtitle" style={styles.cardTitle}>
-            Welcome Back
-          </AppText>
-
-          <View style={styles.inputContainer}>
-            <Icon name="mail-outline" size={20} color={colors.textMuted} style={styles.inputIcon} />
-            <TextInput
-              style={styles.input}
-              placeholder="Email address"
-              placeholderTextColor={colors.textMuted}
-              value={email}
-              onChangeText={setEmail}
-              keyboardType="email-address"
-              autoCapitalize="none"
-              autoCorrect={false}
-            />
-          </View>
-
-          <View style={styles.inputContainer}>
-            <Icon name="lock-closed-outline" size={20} color={colors.textMuted} style={styles.inputIcon} />
-            <TextInput
-              style={styles.input}
-              placeholder="Password"
-              placeholderTextColor={colors.textMuted}
-              value={password}
-              onChangeText={setPassword}
-              secureTextEntry={!showPassword}
-            />
-            <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
-              <Icon
-                name={showPassword ? 'eye-off-outline' : 'eye-outline'}
-                size={20}
-                color={colors.textMuted}
-              />
-            </TouchableOpacity>
-          </View>
-
-          <TouchableOpacity onPress={handleLogin} disabled={loading} activeOpacity={0.8}>
-            <LinearGradient
-              colors={colors.gradientPrimary as [string, string]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-              style={styles.loginButton}
-            >
-              {loading ? (
-                <ActivityIndicator color="#FFF" />
-              ) : (
-                <AppText variant="subtitle" color="#FFF">
-                  Sign In
-                </AppText>
-              )}
-            </LinearGradient>
-          </TouchableOpacity>
-        </GlassCard>
-
-        {/* Register link */}
-        <TouchableOpacity
-          style={styles.registerLink}
-          onPress={() => navigation.navigate('Register')}
+        <Animated.View
+          style={{
+            opacity: formOpacity,
+            transform: [{ translateY: formSlide }],
+          }}
         >
-          <AppText variant="body" color={colors.textSecondary}>
-            Don't have an account?{' '}
-          </AppText>
-          <AppText variant="body" color={colors.primary}>
-            Sign Up
-          </AppText>
-        </TouchableOpacity>
+          <GlassCard style={styles.card}>
+            <AppText variant="subtitle" style={styles.cardTitle}>
+              Welcome Back
+            </AppText>
+
+            <View style={styles.inputContainer}>
+              <Icon name="mail-outline" size={20} color={colors.textMuted} style={styles.inputIcon} />
+              <TextInput
+                style={styles.input}
+                placeholder="Email address"
+                placeholderTextColor={colors.textMuted}
+                value={email}
+                onChangeText={setEmail}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                autoCorrect={false}
+              />
+            </View>
+
+            <View style={styles.inputContainer}>
+              <Icon name="lock-closed-outline" size={20} color={colors.textMuted} style={styles.inputIcon} />
+              <TextInput
+                style={styles.input}
+                placeholder="Password"
+                placeholderTextColor={colors.textMuted}
+                value={password}
+                onChangeText={setPassword}
+                secureTextEntry={!showPassword}
+              />
+              <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
+                <Icon
+                  name={showPassword ? 'eye-off-outline' : 'eye-outline'}
+                  size={20}
+                  color={colors.textMuted}
+                />
+              </TouchableOpacity>
+            </View>
+
+            <TouchableOpacity onPress={handleLogin} disabled={loading} activeOpacity={0.8}>
+              <View style={styles.loginButton}>
+                {loading ? (
+                  <ActivityIndicator color={colors.textInverse} />
+                ) : (
+                  <AppText variant="subtitle" color={colors.textInverse}>
+                    Log In
+                  </AppText>
+                )}
+              </View>
+            </TouchableOpacity>
+          </GlassCard>
+
+          {/* Register link */}
+          <TouchableOpacity
+            style={styles.registerLink}
+            onPress={() => navigation.navigate('Register')}
+          >
+            <AppText variant="body" color={colors.textSecondary}>
+              Don't have an account?{' '}
+            </AppText>
+            <AppText variant="body" color={colors.primary}>
+              Sign Up
+            </AppText>
+          </TouchableOpacity>
+        </Animated.View>
       </KeyboardAvoidingView>
-    </LinearGradient>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
+  container: {
+    flex: 1,
+    backgroundColor: colors.background,
+  },
   content: {
     flex: 1,
     justifyContent: 'center',
@@ -154,27 +199,31 @@ const styles = StyleSheet.create({
     marginBottom: spacing.xl,
   },
   logoContainer: { marginBottom: spacing.md },
-  logoGradient: {
-    width: 64,
-    height: 64,
-    borderRadius: borderRadius.lg,
+  logoCircle: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    backgroundColor: colors.surfaceLight,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  brandText: { marginBottom: spacing.xs },
+  brandText: {
+    marginBottom: spacing.xs,
+    color: colors.text,
+  },
   tagline: { textAlign: 'center' },
   card: { marginBottom: spacing.lg },
   cardTitle: { marginBottom: spacing.lg, textAlign: 'center' },
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.05)',
+    backgroundColor: colors.surfaceLight,
     borderRadius: borderRadius.md,
     paddingHorizontal: spacing.md,
     marginBottom: spacing.md,
     height: 52,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
+    borderColor: 'rgba(255,255,255,0.06)',
   },
   inputIcon: { marginRight: spacing.sm },
   input: {
@@ -184,7 +233,8 @@ const styles = StyleSheet.create({
   },
   loginButton: {
     height: 52,
-    borderRadius: borderRadius.md,
+    borderRadius: borderRadius.full,
+    backgroundColor: colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: spacing.sm,

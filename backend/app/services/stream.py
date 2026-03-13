@@ -3,8 +3,9 @@ Service layer for yt-dlp audio stream extraction.
 Uses yt-dlp's Python API directly (no subprocess).
 
 Extraction strategy:
-  1. Try music.youtube.com URL without cookies (works for most tracks).
-  2. If that fails, try youtube.com with browser cookies or cookies.txt.
+  1. Try music.youtube.com URL with best anti-bot options.
+  2. If that fails, try youtube.com.
+  3. If cookies are configured, retry both with cookies.
 """
 
 import os
@@ -45,12 +46,26 @@ _COOKIE_FILE = Path(__file__).resolve().parents[2] / "cookies.txt"
 _BROWSER = os.getenv("YT_COOKIE_BROWSER", "")
 
 _BASE_OPTS: dict = {
-    "format": "bestaudio/best",
+    "format": "bestaudio[ext=m4a]/bestaudio/best",
     "quiet": True,
     "no_warnings": True,
     "skip_download": True,
     "extract_flat": False,
     "noplaylist": True,
+    # Anti-bot / fingerprinting options
+    "extractor_args": {
+        "youtube": {
+            "player_client": ["ios", "web"],
+        },
+    },
+    "http_headers": {
+        "User-Agent": (
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+            "AppleWebKit/537.36 (KHTML, like Gecko) "
+            "Chrome/131.0.0.0 Safari/537.36"
+        ),
+        "Accept-Language": "en-US,en;q=0.9",
+    },
 }
 
 

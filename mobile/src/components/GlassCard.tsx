@@ -1,10 +1,9 @@
 /**
- * GlassCard — frosted-glass container with gradient background + border.
+ * GlassCard — subtle elevated container with Spotify-style dark surface.
  */
 
 import React from 'react';
 import { StyleSheet, View, ViewStyle } from 'react-native';
-import LinearGradient from 'react-native-linear-gradient';
 import { colors, borderRadius, spacing } from '../theme';
 
 interface GlassCardProps {
@@ -19,22 +18,18 @@ const GlassCard: React.FC<GlassCardProps> = ({
   padding = spacing.md,
 }) => {
   return (
-    <LinearGradient
-      colors={colors.gradientCard as [string, string]}
-      start={{ x: 0, y: 0 }}
-      end={{ x: 1, y: 1 }}
-      style={[styles.container, { padding }, style]}
-    >
+    <View style={[styles.container, { padding }, style]}>
       {children}
-    </LinearGradient>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
+    backgroundColor: colors.surfaceLight,
     borderRadius: borderRadius.lg,
     borderWidth: 1,
-    borderColor: colors.glassBorder,
+    borderColor: 'rgba(255, 255, 255, 0.06)',
     overflow: 'hidden',
   },
 });

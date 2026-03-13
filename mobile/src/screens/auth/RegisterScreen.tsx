@@ -1,8 +1,8 @@
 /**
- * RegisterScreen — sign-up form with name, email, password.
+ * RegisterScreen — Spotify-style sign-up with green accent and animations.
  */
 
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   View,
   TextInput,
@@ -13,8 +13,8 @@ import {
   Platform,
   ActivityIndicator,
   Alert,
+  Animated,
 } from 'react-native';
-import LinearGradient from 'react-native-linear-gradient';
 import Icon from 'react-native-vector-icons/Ionicons';
 import AppText from '../../components/AppText';
 import GlassCard from '../../components/GlassCard';
@@ -27,6 +27,25 @@ const RegisterScreen = ({ navigation }: any) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+
+  // Entrance animation
+  const formSlide = useRef(new Animated.Value(30)).current;
+  const formOpacity = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(formSlide, {
+        toValue: 0,
+        duration: 500,
+        useNativeDriver: true,
+      }),
+      Animated.timing(formOpacity, {
+        toValue: 1,
+        duration: 500,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, []);
 
   const handleRegister = async () => {
     if (!email || !password) {
@@ -47,94 +66,99 @@ const RegisterScreen = ({ navigation }: any) => {
   };
 
   return (
-    <LinearGradient colors={['#0A0A0F', '#1a1a2e', '#0A0A0F']} style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
+    <View style={styles.container}>
+      <StatusBar barStyle="light-content" backgroundColor={colors.background} translucent />
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.content}
       >
-        <View style={styles.header}>
-          <AppText variant="title">Create Account</AppText>
-          <AppText variant="body" style={styles.tagline}>
-            Start streaming for free
-          </AppText>
-        </View>
-
-        <GlassCard style={styles.card}>
-          <View style={styles.inputContainer}>
-            <Icon name="person-outline" size={20} color={colors.textMuted} style={styles.inputIcon} />
-            <TextInput
-              style={styles.input}
-              placeholder="Display name"
-              placeholderTextColor={colors.textMuted}
-              value={name}
-              onChangeText={setName}
-              autoCapitalize="words"
-            />
-          </View>
-
-          <View style={styles.inputContainer}>
-            <Icon name="mail-outline" size={20} color={colors.textMuted} style={styles.inputIcon} />
-            <TextInput
-              style={styles.input}
-              placeholder="Email address"
-              placeholderTextColor={colors.textMuted}
-              value={email}
-              onChangeText={setEmail}
-              keyboardType="email-address"
-              autoCapitalize="none"
-              autoCorrect={false}
-            />
-          </View>
-
-          <View style={styles.inputContainer}>
-            <Icon name="lock-closed-outline" size={20} color={colors.textMuted} style={styles.inputIcon} />
-            <TextInput
-              style={styles.input}
-              placeholder="Password (min 6 characters)"
-              placeholderTextColor={colors.textMuted}
-              value={password}
-              onChangeText={setPassword}
-              secureTextEntry
-            />
-          </View>
-
-          <TouchableOpacity onPress={handleRegister} disabled={loading} activeOpacity={0.8}>
-            <LinearGradient
-              colors={colors.gradientPrimary as [string, string]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-              style={styles.registerButton}
-            >
-              {loading ? (
-                <ActivityIndicator color="#FFF" />
-              ) : (
-                <AppText variant="subtitle" color="#FFF">
-                  Create Account
-                </AppText>
-              )}
-            </LinearGradient>
-          </TouchableOpacity>
-        </GlassCard>
-
-        <TouchableOpacity
-          style={styles.loginLink}
-          onPress={() => navigation.goBack()}
+        <Animated.View
+          style={{
+            opacity: formOpacity,
+            transform: [{ translateY: formSlide }],
+          }}
         >
-          <AppText variant="body" color={colors.textSecondary}>
-            Already have an account?{' '}
-          </AppText>
-          <AppText variant="body" color={colors.primary}>
-            Sign In
-          </AppText>
-        </TouchableOpacity>
+          <View style={styles.header}>
+            <AppText variant="title">Create Account</AppText>
+            <AppText variant="body" style={styles.tagline}>
+              Start streaming for free
+            </AppText>
+          </View>
+
+          <GlassCard style={styles.card}>
+            <View style={styles.inputContainer}>
+              <Icon name="person-outline" size={20} color={colors.textMuted} style={styles.inputIcon} />
+              <TextInput
+                style={styles.input}
+                placeholder="Display name"
+                placeholderTextColor={colors.textMuted}
+                value={name}
+                onChangeText={setName}
+                autoCapitalize="words"
+              />
+            </View>
+
+            <View style={styles.inputContainer}>
+              <Icon name="mail-outline" size={20} color={colors.textMuted} style={styles.inputIcon} />
+              <TextInput
+                style={styles.input}
+                placeholder="Email address"
+                placeholderTextColor={colors.textMuted}
+                value={email}
+                onChangeText={setEmail}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                autoCorrect={false}
+              />
+            </View>
+
+            <View style={styles.inputContainer}>
+              <Icon name="lock-closed-outline" size={20} color={colors.textMuted} style={styles.inputIcon} />
+              <TextInput
+                style={styles.input}
+                placeholder="Password (min 6 characters)"
+                placeholderTextColor={colors.textMuted}
+                value={password}
+                onChangeText={setPassword}
+                secureTextEntry
+              />
+            </View>
+
+            <TouchableOpacity onPress={handleRegister} disabled={loading} activeOpacity={0.8}>
+              <View style={styles.registerButton}>
+                {loading ? (
+                  <ActivityIndicator color={colors.textInverse} />
+                ) : (
+                  <AppText variant="subtitle" color={colors.textInverse}>
+                    Create Account
+                  </AppText>
+                )}
+              </View>
+            </TouchableOpacity>
+          </GlassCard>
+
+          <TouchableOpacity
+            style={styles.loginLink}
+            onPress={() => navigation.goBack()}
+          >
+            <AppText variant="body" color={colors.textSecondary}>
+              Already have an account?{' '}
+            </AppText>
+            <AppText variant="body" color={colors.primary}>
+              Sign In
+            </AppText>
+          </TouchableOpacity>
+        </Animated.View>
       </KeyboardAvoidingView>
-    </LinearGradient>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
+  container: {
+    flex: 1,
+    backgroundColor: colors.background,
+  },
   content: {
     flex: 1,
     justifyContent: 'center',
@@ -149,13 +173,13 @@ const styles = StyleSheet.create({
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.05)',
+    backgroundColor: colors.surfaceLight,
     borderRadius: borderRadius.md,
     paddingHorizontal: spacing.md,
     marginBottom: spacing.md,
     height: 52,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
+    borderColor: 'rgba(255,255,255,0.06)',
   },
   inputIcon: { marginRight: spacing.sm },
   input: {
@@ -165,7 +189,8 @@ const styles = StyleSheet.create({
   },
   registerButton: {
     height: 52,
-    borderRadius: borderRadius.md,
+    borderRadius: borderRadius.full,
+    backgroundColor: colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: spacing.sm,
