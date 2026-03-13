@@ -24,7 +24,7 @@ jobs:
           cache-dependency-path: mobile/package-lock.json
 
       - name: Install dependencies
-        run: npm ci
+        run: npm install
 
       - name: Set up JDK 17
         uses: actions/setup-java@v4
