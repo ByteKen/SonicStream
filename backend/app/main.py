@@ -6,7 +6,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
-from app.routers import search, stream, audio
+from app.routers import search, stream, audio, admin
 
 app = FastAPI(
     title="Spotify Clone API",
@@ -27,6 +27,7 @@ app.add_middleware(
 app.include_router(search.router)
 app.include_router(stream.router)
 app.include_router(audio.router)
+app.include_router(admin.router)
 
 
 # ── Health check ────────────────────────────────────────
