@@ -38,8 +38,9 @@ const SearchScreen = () => {
     try {
       const tracks = await searchTracks(query.trim());
       setResults(tracks);
-    } catch (err) {
+    } catch (err: any) {
       console.warn('Search error:', err);
+      Alert.alert('Search Error', err?.message || 'Failed to connect to server');
       setResults([]);
     } finally {
       setLoading(false);

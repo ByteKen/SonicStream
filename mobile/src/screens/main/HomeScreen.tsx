@@ -13,6 +13,7 @@ import {
   ActivityIndicator,
   RefreshControl,
   Animated,
+  Alert,
   Dimensions,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
@@ -140,8 +141,9 @@ const HomeScreen = () => {
       if (trending.status === 'fulfilled') setTrendingTracks(trending.value);
       if (chill.status === 'fulfilled') setChillTracks(chill.value);
       if (hiphop.status === 'fulfilled') setHiphopTracks(hiphop.value);
-    } catch (err) {
+    } catch (err: any) {
       console.warn('Home content fetch error:', err);
+      Alert.alert('Home Error', err?.message || 'Failed to connect to server');
     } finally {
       setLoading(false);
       setRefreshing(false);
