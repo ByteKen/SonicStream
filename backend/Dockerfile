@@ -17,9 +17,9 @@ FROM python:3.13-slim
 
 WORKDIR /app
 
-# ffmpeg is needed by yt-dlp for audio transcoding (if used)
+# ffmpeg for audio transcoding, nodejs for yt-dlp JS signature solving
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends ffmpeg && \
+    apt-get install -y --no-install-recommends ffmpeg nodejs && \
     rm -rf /var/lib/apt/lists/*
 
 # Copy installed packages from builder

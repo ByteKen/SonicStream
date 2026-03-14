@@ -135,7 +135,7 @@ def _build_opts(*, use_cookies: bool = False, use_proxy: bool = False) -> dict:
         "socket_timeout": 15,
         "extractor_args": {
             "youtube": {
-                "player_client": ["tv"],
+                "player_client": ["web_music", "ios"],
             },
         },
     }
