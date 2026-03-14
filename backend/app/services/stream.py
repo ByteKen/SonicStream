@@ -155,6 +155,12 @@ def _try_piped(video_id: str) -> StreamInfo | None:
 COOKIE_FILE = Path(tempfile.gettempdir()) / "youtube_cookies.txt"
 _BROWSER = os.getenv("YT_COOKIE_BROWSER", "")
 
+# Restore cookies from env var on startup (survives Render redeploys)
+_COOKIE_ENV = os.getenv("YOUTUBE_COOKIES", "")
+if _COOKIE_ENV and not COOKIE_FILE.is_file():
+    COOKIE_FILE.write_text(_COOKIE_ENV)
+    logger.info("Restored cookies from YOUTUBE_COOKIES env var (%d bytes)", len(_COOKIE_ENV))
+
 _BASE_OPTS: dict = {
     "format": "bestaudio[ext=m4a]/bestaudio/best",
     "quiet": True,
