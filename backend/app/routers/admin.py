@@ -38,9 +38,10 @@ async def upload_cookies(file: UploadFile = File(...)):
             detail="Invalid cookies.txt — must contain YouTube/Google cookies"
         )
 
-    # Write to the cookie file location
+    # Write to the cookie file location (strip Windows \r\n → \n)
     try:
-        COOKIE_FILE.write_bytes(content)
+        clean_text = text.replace("\r\n", "\n").replace("\r", "\n")
+        COOKIE_FILE.write_text(clean_text)
     except Exception as exc:
         raise HTTPException(
             status_code=500,

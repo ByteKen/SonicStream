@@ -158,20 +158,22 @@ _BROWSER = os.getenv("YT_COOKIE_BROWSER", "")
 # Restore cookies from env var on startup (survives Render redeploys)
 _COOKIE_ENV = os.getenv("YOUTUBE_COOKIES", "")
 if _COOKIE_ENV and not COOKIE_FILE.is_file():
-    COOKIE_FILE.write_text(_COOKIE_ENV)
-    logger.info("Restored cookies from YOUTUBE_COOKIES env var (%d bytes)", len(_COOKIE_ENV))
+    # Strip Windows \r line-endings — they corrupt the Netscape format on Linux
+    clean = _COOKIE_ENV.replace("\r\n", "\n").replace("\r", "\n")
+    COOKIE_FILE.write_text(clean)
+    logger.info("Restored cookies from YOUTUBE_COOKIES env var (%d bytes)", len(clean))
 
 _BASE_OPTS: dict = {
     "format": "bestaudio[ext=m4a]/bestaudio/best",
-    "quiet": True,
-    "no_warnings": True,
+    "quiet": False,
+    "no_warnings": False,
     "skip_download": True,
     "extract_flat": False,
     "noplaylist": True,
     "extractor_args": {
         "youtube": {
-            # Bypasses bot detection much better on cloud servers:
-            "player_client": ["android", "tv", "mweb", "ios"],
+            # 'tv' client bypasses PO Token requirement on datacenter IPs
+            "player_client": ["tv"],
         },
     },
 }
@@ -197,6 +199,10 @@ def _try_ytdlp(video_id: str) -> StreamInfo | None:
     ]
 
     has_cookies = bool(_BROWSER) or COOKIE_FILE.is_file()
+    logger.info(
+        "yt-dlp attempt for %s | cookies_file_exists=%s | cookie_path=%s",
+        video_id, COOKIE_FILE.is_file(), COOKIE_FILE,
+    )
 
     # Build attempts: with cookies first (if available), then without
     attempts: list[tuple[str, dict]] = []
@@ -208,6 +214,7 @@ def _try_ytdlp(video_id: str) -> StreamInfo | None:
 
     for url, opts in attempts:
         try:
+            logger.info("yt-dlp trying %s (cookiefile=%s)", url, opts.get('cookiefile', 'NONE'))
             with yt_dlp.YoutubeDL(opts) as ydl:
                 info = ydl.extract_info(url, download=False)
                 if not info:
