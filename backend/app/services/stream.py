@@ -113,7 +113,7 @@ def _try_piped(video_id: str) -> StreamInfo | None:
 # ── yt-dlp extraction ──────────────────────────────────
 COOKIE_FILE = Path(tempfile.gettempdir()) / "youtube_cookies.txt"
 _BROWSER = os.getenv("YT_COOKIE_BROWSER", "")
-_PROXY_URL = os.getenv("PROXY_URL", "")
+_PROXY_URL = os.getenv("PROXY_URL", "socks5://127.0.0.1:9050")
 
 # Restore cookies from env var on startup (survives Render redeploys)
 _COOKIE_ENV = os.getenv("YOUTUBE_COOKIES", "")
